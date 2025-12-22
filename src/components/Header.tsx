@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useCart } from '@/contexts/CartContext';
-import { User } from '@supabase/supabase-js';
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
@@ -17,6 +17,8 @@ export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { cartCount } = useCart();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Header() {
     getUser();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       if (session?.user) {
         setUser(session.user);
       } else {
@@ -77,6 +79,29 @@ export default function Header() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        mobileMenuOpen &&
+        menuRef.current &&
+        buttonRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -240,6 +265,7 @@ export default function Header() {
 
               {/* Hamburger Menu Button - Always visible in upper right */}
               <button
+                ref={buttonRef}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 hover:bg-botanical-green-700 rounded-md transition-colors"
                 aria-label="Toggle menu"
@@ -283,7 +309,7 @@ export default function Header() {
 
       {/* Hamburger Menu Dropdown - Always visible when open */}
       {mobileMenuOpen && (
-        <div className="absolute top-full right-4 mt-2 bg-botanical-green-800 border border-botanical-green-700 rounded-lg shadow-xl z-50 min-w-[250px]">
+        <div ref={menuRef} className="absolute top-full right-4 mt-2 bg-botanical-green-800 border border-botanical-green-700 rounded-lg shadow-xl z-50 min-w-[250px]">
           <nav className="flex flex-col py-2">
             {/* Account Section */}
             {user ? (

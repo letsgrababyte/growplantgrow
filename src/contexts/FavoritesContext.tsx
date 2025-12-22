@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 interface FavoritesContextType {
   favorites: string[];
@@ -51,7 +51,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         return [];
       }
 
-      return data?.map((item) => item.product_id) || [];
+      return data?.map((item: any) => item.product_id) || [];
     } catch (error) {
       console.error('Error loading favorites:', error);
       return [];
@@ -143,7 +143,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     };
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null);
     });
 

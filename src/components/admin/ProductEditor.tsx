@@ -31,10 +31,13 @@ export default function ProductEditor({ product }: ProductEditorProps) {
     seo_description: product?.seo_description || '',
     meta_keywords: product?.meta_keywords?.join(', ') || '',
     thumbnail_url: product?.thumbnailUrl || '',
+    preview_images: product?.previewImages?.join(', ') || '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -61,7 +64,10 @@ export default function ProductEditor({ product }: ProductEditorProps) {
         category: formData.category,
         tags: tagsArray,
         thumbnailUrl: formData.thumbnail_url,
-        previewImages: product?.previewImages || [],
+        previewImages: formData.preview_images
+          .split(',')
+          .map(url => url.trim())
+          .filter(url => url.length > 0),
         fileType: formData.file_type,
         pageCount: parseInt(formData.page_count.toString()),
         file_size_mb: formData.file_size_mb ? parseFloat(formData.file_size_mb.toString()) : undefined,
@@ -253,27 +259,103 @@ export default function ProductEditor({ product }: ProductEditorProps) {
         {/* Media */}
         <div>
           <h2 className="text-lg font-semibold text-botanical-green-900 mb-4">Media</h2>
-          <div>
-            <label className="block text-sm font-medium text-botanical-green-800 mb-1">
-              Thumbnail URL
-            </label>
-            <input
-              type="url"
-              value={formData.thumbnail_url}
-              onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
-              placeholder="https://..."
-              className="w-full rounded-md border border-botanical-green-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-botanical-green-500"
-            />
-            {formData.thumbnail_url && (
-              <div className="mt-2 relative w-32 h-32 rounded-md overflow-hidden border border-botanical-green-300">
-                <Image
-                  src={formData.thumbnail_url}
-                  alt="Preview"
-                  fill
-                  className="object-cover"
-                />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-botanical-green-800 mb-1">
+                Thumbnail Image
+              </label>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <input
+                    type="url"
+                    value={formData.thumbnail_url}
+                    onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
+                    placeholder="https://... or upload an image"
+                    className="w-full rounded-md border border-botanical-green-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-botanical-green-500"
+                  />
+                </div>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="thumbnail-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      setUploading(true);
+                      setUploadError('');
+                      
+                      try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('folder', 'thumbnails');
+                        
+                        const response = await fetch('/api/admin/upload', {
+                          method: 'POST',
+                          body: formData,
+                        });
+                        
+                        if (!response.ok) {
+                          const data = await response.json();
+                          throw new Error(data.error || 'Upload failed');
+                        }
+                        
+                        const { url } = await response.json();
+                        setFormData({ ...formData, thumbnail_url: url });
+                      } catch (err: any) {
+                        setUploadError(err.message || 'Failed to upload image');
+                      } finally {
+                        setUploading(false);
+                        // Reset input
+                        e.target.value = '';
+                      }
+                    }}
+                    disabled={uploading}
+                  />
+                  <label
+                    htmlFor="thumbnail-upload"
+                    className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md border transition-colors ${
+                      uploading
+                        ? 'bg-botanical-cream-100 text-botanical-green-400 border-botanical-green-200 cursor-not-allowed'
+                        : 'bg-white text-botanical-green-700 border-botanical-green-300 hover:bg-botanical-cream-50 cursor-pointer'
+                    }`}
+                  >
+                    {uploading ? 'Uploading...' : 'Upload Image'}
+                  </label>
+                </div>
               </div>
-            )}
+              {uploadError && (
+                <p className="mt-1 text-xs text-red-600">{uploadError}</p>
+              )}
+              {formData.thumbnail_url && (
+                <div className="mt-2 relative w-32 h-32 rounded-md overflow-hidden border border-botanical-green-300">
+                  <Image
+                    src={formData.thumbnail_url}
+                    alt="Thumbnail preview"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-botanical-green-800 mb-1">
+                Preview Images (comma-separated URLs)
+              </label>
+              <textarea
+                rows={3}
+                value={formData.preview_images}
+                onChange={(e) => setFormData({ ...formData, preview_images: e.target.value })}
+                placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+                className="w-full rounded-md border border-botanical-green-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-botanical-green-500"
+              />
+              <p className="mt-1 text-xs text-botanical-green-600">
+                Enter image URLs separated by commas. These will be shown on the product page.
+              </p>
+            </div>
           </div>
         </div>
 

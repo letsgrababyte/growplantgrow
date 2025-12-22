@@ -62,7 +62,7 @@ export default function OrdersPage() {
       if (ordersError) throw ordersError;
 
       if (ordersData && ordersData.length > 0) {
-        const orderIds = ordersData.map((o) => o.id);
+        const orderIds = ordersData.map((o: any) => o.id);
         const { data: itemsData, error: itemsError } = await supabase
           .from('order_items')
           .select('*')
@@ -70,9 +70,9 @@ export default function OrdersPage() {
 
         if (itemsError) throw itemsError;
 
-        const ordersWithItems = ordersData.map((order) => ({
+        const ordersWithItems = ordersData.map((order: any) => ({
           ...order,
-          items: (itemsData || []).filter((item) => item.order_id === order.id),
+          items: (itemsData || []).filter((item: any) => item.order_id === order.id),
         }));
 
         setOrders(ordersWithItems as Order[]);

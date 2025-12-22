@@ -24,12 +24,12 @@ export default function ProductPage({ params }: ProductPageProps) {
   }
 
   return (
-    <div className="py-12 px-4">
+    <div className="py-6 sm:py-12 px-4 sm:px-6">
       <div className="container mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-12">
           {/* Images */}
           <div>
-            <div className="relative w-full h-96 md:h-[500px] bg-botanical-green-100 rounded-lg overflow-hidden mb-4">
+            <div className="relative w-full h-64 sm:h-96 md:h-[500px] bg-botanical-green-100 rounded-lg overflow-hidden mb-3 sm:mb-4">
               <Image
                 src={product.thumbnailUrl}
                 alt={product.title}
@@ -44,7 +44,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 {product.previewImages.map((image, index) => (
                   <div
                     key={index}
-                    className="relative w-full h-24 bg-botanical-green-100 rounded-md overflow-hidden"
+                    className="relative w-full h-20 sm:h-24 bg-botanical-green-100 rounded-md overflow-hidden"
                   >
                     <Image
                       src={image}
@@ -61,48 +61,48 @@ export default function ProductPage({ params }: ProductPageProps) {
 
           {/* Product Info */}
           <div>
-            <div className="mb-4">
-              <span className="text-sm text-botanical-green-600 font-medium">
+            <div className="mb-2 sm:mb-4">
+              <span className="text-xs sm:text-sm text-botanical-green-600 font-medium">
                 {product.category}
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-serif text-botanical-green-900 mb-4">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif text-botanical-green-900 mb-3 sm:mb-4">
               {product.title}
             </h1>
-            <div className="text-3xl font-serif text-botanical-green-800 mb-6">
+            <div className="text-2xl sm:text-3xl font-serif text-botanical-green-800 mb-4 sm:mb-6">
               ${product.price.toFixed(2)}
             </div>
-            <p className="text-lg text-botanical-green-700 mb-8 leading-relaxed">
+            <p className="text-base sm:text-lg text-botanical-green-700 mb-6 sm:mb-8 leading-relaxed">
               {product.description}
             </p>
 
             {/* Specs */}
-            <div className="bg-botanical-cream-100 rounded-lg p-6 mb-8">
-              <h2 className="text-xl font-serif text-botanical-green-800 mb-4">
+            <div className="bg-botanical-cream-100 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-serif text-botanical-green-800 mb-3 sm:mb-4">
                 Product Details
               </h2>
-              <dl className="space-y-3">
-                <div className="flex">
-                  <dt className="font-semibold text-botanical-green-800 w-32">File Type:</dt>
+              <dl className="space-y-2 sm:space-y-3">
+                <div className="flex flex-col sm:flex-row">
+                  <dt className="font-semibold text-botanical-green-800 sm:w-32 mb-1 sm:mb-0">File Type:</dt>
                   <dd className="text-botanical-green-700">{product.fileType}</dd>
                 </div>
-                <div className="flex">
-                  <dt className="font-semibold text-botanical-green-800 w-32">Pages:</dt>
+                <div className="flex flex-col sm:flex-row">
+                  <dt className="font-semibold text-botanical-green-800 sm:w-32 mb-1 sm:mb-0">Pages:</dt>
                   <dd className="text-botanical-green-700">{product.pageCount}</dd>
                 </div>
-                <div className="flex">
-                  <dt className="font-semibold text-botanical-green-800 w-32">Category:</dt>
+                <div className="flex flex-col sm:flex-row">
+                  <dt className="font-semibold text-botanical-green-800 sm:w-32 mb-1 sm:mb-0">Category:</dt>
                   <dd className="text-botanical-green-700">{product.category}</dd>
                 </div>
                 {product.tags.length > 0 && (
-                  <div className="flex">
-                    <dt className="font-semibold text-botanical-green-800 w-32">Tags:</dt>
+                  <div className="flex flex-col sm:flex-row">
+                    <dt className="font-semibold text-botanical-green-800 sm:w-32 mb-1 sm:mb-0">Tags:</dt>
                     <dd className="text-botanical-green-700">
                       <div className="flex flex-wrap gap-2">
                         {product.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="px-2 py-1 bg-botanical-green-200 text-botanical-green-800 rounded text-sm"
+                            className="px-2 py-1 bg-botanical-green-200 text-botanical-green-800 rounded text-xs sm:text-sm"
                           >
                             {tag}
                           </span>
@@ -121,7 +121,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               variant="primary"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full md:w-auto"
+              className="w-full md:w-auto min-h-[44px]"
             >
               Buy Now
             </Button>
