@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import CategoryPageClient from '@/components/CategoryPageClient';
 
 interface CategoryPageProps {
@@ -40,6 +41,8 @@ const validCategories = [
   'Freebies',
 ];
 
+export const dynamic = 'force-dynamic';
+
 export async function generateStaticParams() {
   return validCategories.map((category) => ({
     category: encodeURIComponent(category),
@@ -49,6 +52,11 @@ export async function generateStaticParams() {
 export default function CategoryPage({ params }: CategoryPageProps) {
   // Decode the category name from URL
   const categoryName = decodeURIComponent(params.category);
+
+  // Validate category on server side to prevent prerender errors
+  if (!validCategories.includes(categoryName)) {
+    notFound();
+  }
 
   return (
     <CategoryPageClient 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { notFound } from 'next/navigation';
 import { getAllProducts, filterProducts, Product } from '@/lib/products';
 import EtsyProductGrid from '@/components/EtsyProductGrid';
 import CategoryFilterSidebar from '@/components/CategoryFilterSidebar';
@@ -14,14 +13,13 @@ interface CategoryPageClientProps {
 export default function CategoryPageClient({ categoryName, validCategories }: CategoryPageClientProps) {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   
-  // Check if category is valid
-  if (!validCategories.includes(categoryName)) {
-    notFound();
-  }
-
   // Get all products and filter by category (case-insensitive matching)
-  const allProducts = getAllProducts();
+  // Add safety guard for empty products array
   const categoryProducts = useMemo(() => {
+    const allProducts = getAllProducts() || [];
+    if (!allProducts || allProducts.length === 0) {
+      return [];
+    }
     return filterProducts(allProducts, {
       category: categoryName,
     });
