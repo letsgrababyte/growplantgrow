@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import SectionHeading from '@/components/SectionHeading';
 import Button from '@/components/Button';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -54,7 +54,7 @@ export default function AccountPage() {
     getUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
         Promise.all([
@@ -96,7 +96,7 @@ export default function AccountPage() {
       if (ordersError) throw ordersError;
 
       if (orders && orders.length > 0) {
-        const orderIds = orders.map((o: any) => o.id);
+        const orderIds = orders.map((o) => o.id);
         const { data: items, error: itemsError } = await supabase
           .from('order_items')
           .select('product_id')
@@ -104,7 +104,7 @@ export default function AccountPage() {
 
         if (!itemsError && items) {
           // Count unique products
-          const uniqueProducts = new Set(items.map((item: any) => item.product_id));
+          const uniqueProducts = new Set(items.map((item) => item.product_id));
           setDownloadsCount(uniqueProducts.size);
         }
       }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import SectionHeading from '@/components/SectionHeading';
 import Button from '@/components/Button';
 
@@ -59,7 +59,7 @@ export default function SettingsPage() {
     getUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
         setEmail(session.user.email || '');

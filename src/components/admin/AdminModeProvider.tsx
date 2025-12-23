@@ -37,10 +37,39 @@ export function AdminModeProvider({ children }: AdminModeProviderProps) {
   useEffect(() => {
     const supabase = createClient();
     
+    // Check if Supabase is properly configured
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const isSupabaseConfigured = supabaseUrl && 
+                                  supabaseKey && 
+                                  !supabaseUrl.includes('placeholder') && 
+                                  supabaseKey !== 'placeholder-key';
+
+    // Skip if Supabase is not configured
+    if (!isSupabaseConfigured) {
+      setIsAdmin(false);
+      setAdminRole(null);
+      setAdminUser(null);
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    let subscription: any = null;
+
     const checkAdminStatus = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        setUser(currentUser);
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        );
+        
+        const userPromise = supabase.auth.getUser();
+        const { data: { user: currentUser } } = await Promise.race([userPromise, timeoutPromise]) as any;
+        
+        if (!mounted) return;
+        
+        setUser(currentUser || null);
 
         if (!currentUser) {
           setIsAdmin(false);
@@ -50,12 +79,16 @@ export function AdminModeProvider({ children }: AdminModeProviderProps) {
           return;
         }
 
-        // Check if user is an admin
-        const { data: adminData, error } = await supabase
+        // Check if user is an admin with timeout
+        const adminQueryPromise = supabase
           .from('admin_users')
           .select('*')
           .eq('user_id', currentUser.id)
           .single();
+
+        const { data: adminData, error } = await Promise.race([adminQueryPromise, timeoutPromise]) as any;
+
+        if (!mounted) return;
 
         if (adminData && !error) {
           setIsAdmin(true);
@@ -67,30 +100,45 @@ export function AdminModeProvider({ children }: AdminModeProviderProps) {
           setAdminUser(null);
         }
       } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
-        setAdminRole(null);
-        setAdminUser(null);
+        if (mounted) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+          setAdminRole(null);
+          setAdminUser(null);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkAdminStatus();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-      if (session?.user) {
-        await checkAdminStatus();
-      } else {
-        setIsAdmin(false);
-        setAdminRole(null);
-        setAdminUser(null);
-      }
-    });
+    try {
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+        if (mounted) {
+          if (session?.user) {
+            await checkAdminStatus();
+          } else {
+            setIsAdmin(false);
+            setAdminRole(null);
+            setAdminUser(null);
+            setUser(null);
+          }
+        }
+      });
+      subscription = sub;
+    } catch (error) {
+      console.warn('Failed to set up auth state listener:', error);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 

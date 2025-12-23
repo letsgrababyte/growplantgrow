@@ -40,11 +40,18 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
+      
+      const queryPromise = supabase
         .from('user_favorites')
         .select('product_id')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Error loading favorites from Supabase:', error);
@@ -102,53 +109,106 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     const loadFavorites = async () => {
       setLoading(true);
       
-      if (user) {
-        // User is logged in - load from Supabase
-        const supabaseFavorites = await loadFavoritesFromSupabase(user.id);
-        
-        // Sync local favorites to Supabase (merge)
-        await syncLocalFavoritesToSupabase(user.id);
-        
-        // Reload after sync to get merged list
-        const mergedFavorites = await loadFavoritesFromSupabase(user.id);
-        setFavorites(mergedFavorites);
-        
-        // Update localStorage with merged favorites
-        localStorage.setItem('gpg-favorites', JSON.stringify(mergedFavorites));
-      } else {
-        // User is not logged in - load from localStorage
+      try {
+        if (user && isSupabaseConfigured()) {
+          // User is logged in - load from Supabase
+          const supabaseFavorites = await loadFavoritesFromSupabase(user.id);
+          
+          // Sync local favorites to Supabase (merge)
+          await syncLocalFavoritesToSupabase(user.id);
+          
+          // Reload after sync to get merged list
+          const mergedFavorites = await loadFavoritesFromSupabase(user.id);
+          setFavorites(mergedFavorites);
+          
+          // Update localStorage with merged favorites
+          localStorage.setItem('gpg-favorites', JSON.stringify(mergedFavorites));
+        } else {
+          // User is not logged in or Supabase not configured - load from localStorage
+          const savedFavorites = localStorage.getItem('gpg-favorites');
+          if (savedFavorites) {
+            try {
+              setFavorites(JSON.parse(savedFavorites));
+            } catch (e) {
+              setFavorites([]);
+            }
+          } else {
+            setFavorites([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
+        // Fallback to localStorage
         const savedFavorites = localStorage.getItem('gpg-favorites');
         if (savedFavorites) {
-          setFavorites(JSON.parse(savedFavorites));
+          try {
+            setFavorites(JSON.parse(savedFavorites));
+          } catch (e) {
+            setFavorites([]);
+          }
         } else {
           setFavorites([]);
         }
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     loadFavorites();
-  }, [user, loadFavoritesFromSupabase, syncLocalFavoritesToSupabase]);
+  }, [user, loadFavoritesFromSupabase, syncLocalFavoritesToSupabase, isSupabaseConfigured]);
 
   // Get user and listen for auth changes
   useEffect(() => {
+    // Skip if Supabase is not configured
+    if (!isSupabaseConfigured()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    let subscription: any = null;
+
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        );
+        
+        const userPromise = supabase.auth.getUser();
+        const { data: { user } } = await Promise.race([userPromise, timeoutPromise]) as any;
+        
+        if (mounted) {
+          setUser(user);
+        }
       } catch (error) {
-        setUser(null);
+        if (mounted) {
+          setUser(null);
+        }
       }
     };
+    
     getUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
-      setUser(session?.user ?? null);
-    });
+    try {
+      const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
+        if (mounted) {
+          setUser(session?.user ?? null);
+        }
+      });
+      subscription = sub;
+    } catch (error) {
+      console.warn('Failed to set up auth state listener:', error);
+    }
 
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+    return () => {
+      mounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
+  }, [supabase, isSupabaseConfigured]);
 
   // Save to localStorage whenever favorites change (for offline support)
   useEffect(() => {

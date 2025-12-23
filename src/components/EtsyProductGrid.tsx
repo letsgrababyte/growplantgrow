@@ -10,14 +10,30 @@ import { useCart } from '@/contexts/CartContext';
 interface EtsyProductGridProps {
   products: Product[];
   title?: string;
+  featuredTitle?: string;
+  featuredProducts?: Product[];
 }
 
-export default function EtsyProductGrid({ products, title = 'Shop Our Products' }: EtsyProductGridProps) {
+export default function EtsyProductGrid({ 
+  products, 
+  title = 'Shop Our Products',
+  featuredTitle,
+  featuredProducts
+}: EtsyProductGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addToCart } = useCart();
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // Determine featured products: use provided featuredProducts, or filter by isFeatured, or use first 8
+  const displayFeaturedProducts = featuredProducts 
+    ? featuredProducts 
+    : products.filter(p => p.isFeatured).length > 0 
+      ? products.filter(p => p.isFeatured).slice(0, 8)
+      : products.slice(0, 8);
+  
+  const displayFeaturedTitle = featuredTitle || 'Featured Products';
 
   const checkScrollability = () => {
     if (scrollRef.current) {
@@ -38,7 +54,7 @@ export default function EtsyProductGrid({ products, title = 'Shop Our Products' 
         window.removeEventListener('resize', checkScrollability);
       };
     }
-  }, [products]);
+  }, [displayFeaturedProducts]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -58,11 +74,12 @@ export default function EtsyProductGrid({ products, title = 'Shop Our Products' 
     <div className="py-4 sm:py-8 px-2 sm:px-4 bg-white">
       <div className="container mx-auto">
         {/* Horizontal Scroll Section - Top */}
-        <div className="mb-8 sm:mb-12">
-          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-botanical-green-800">
-              Featured Products
-            </h2>
+        {displayFeaturedProducts.length > 0 && (
+          <div className="mb-8 sm:mb-12">
+            <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-serif text-botanical-green-800">
+                {displayFeaturedTitle}
+              </h2>
             <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={() => scroll('left')}
@@ -87,16 +104,17 @@ export default function EtsyProductGrid({ products, title = 'Shop Our Products' 
             </div>
           </div>
 
-          <div
-            ref={scrollRef}
-            className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {products.slice(0, 8).map((product) => (
-              <ProductCard key={product.id} product={product} isHorizontal={true} />
-            ))}
+            <div
+              ref={scrollRef}
+              className="flex gap-2 sm:gap-4 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {displayFeaturedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} isHorizontal={true} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Two Column Grid Section - Below */}
         <div className="mb-6 sm:mb-8">

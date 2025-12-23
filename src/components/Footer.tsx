@@ -23,23 +23,23 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/shop?category=Guides" className="hover:text-botanical-cream-300 transition-colors">
-                  Guides
+                <Link href={`/shop/category/${encodeURIComponent('Guides & Workbooks')}`} className="hover:text-botanical-cream-300 transition-colors">
+                  Guides & Workbooks
                 </Link>
               </li>
               <li>
-                <Link href="/shop?category=Workbooks" className="hover:text-botanical-cream-300 transition-colors">
-                  Workbooks
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?category=Printables" className="hover:text-botanical-cream-300 transition-colors">
-                  Printables
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop?category=Ebooks" className="hover:text-botanical-cream-300 transition-colors">
+                <Link href={`/shop/category/${encodeURIComponent('Ebooks')}`} className="hover:text-botanical-cream-300 transition-colors">
                   Ebooks
+                </Link>
+              </li>
+              <li>
+                <Link href={`/shop/category/${encodeURIComponent('Coloring Pages')}`} className="hover:text-botanical-cream-300 transition-colors">
+                  Coloring Pages
+                </Link>
+              </li>
+              <li>
+                <Link href={`/shop/category/${encodeURIComponent('Planners')}`} className="hover:text-botanical-cream-300 transition-colors">
+                  Planners
                 </Link>
               </li>
             </ul>

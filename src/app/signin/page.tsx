@@ -9,7 +9,6 @@ import SectionHeading from '@/components/SectionHeading';
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -39,19 +38,38 @@ function SignInForm() {
 
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted - handleSignIn called');
     setError('');
     setLoading(true);
 
     try {
+      // Validate inputs first
+      if (!email.trim()) {
+        setError('Please enter your email address.');
+        setLoading(false);
+        return;
+      }
+
+      if (!password) {
+        setError('Please enter your password.');
+        setLoading(false);
+        return;
+      }
+
+      // Create a fresh Supabase client
+      const supabaseClient = createClient();
+      
       // Normalize email (trim and lowercase)
       const normalizedEmail = email.trim().toLowerCase();
       
       console.log('Attempting sign-in for:', normalizedEmail);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
       });
+      
+      console.log('Sign-in response:', { hasData: !!data, hasError: !!error, error: error?.message });
 
       if (error) {
         // Provide more helpful error messages
@@ -98,7 +116,7 @@ function SignInForm() {
       });
 
       // Verify session is valid by checking user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
       
       if (userError || !user) {
         console.error('Failed to verify user after sign-in:', userError);
@@ -112,7 +130,8 @@ function SignInForm() {
       window.location.href = '/';
     } catch (err: any) {
       console.error('Unexpected error during sign-in:', err);
-      setError(err.message || 'An unexpected error occurred during sign in. Please try again.');
+      const errorMessage = err?.message || err?.toString() || 'An unexpected error occurred during sign in. Please try again.';
+      setError(`Sign-in error: ${errorMessage}. Please check your internet connection and try again.`);
       setLoading(false);
     }
   };

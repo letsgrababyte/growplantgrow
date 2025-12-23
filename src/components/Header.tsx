@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { useState, FormEvent, useEffect, useRef } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useCart } from '@/contexts/CartContext';
-import { User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import ProfileDropdown from './ProfileDropdown';
 
 export default function Header() {
@@ -17,8 +17,6 @@ export default function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { cartCount } = useCart();
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
 
   useEffect(() => {
@@ -66,7 +64,7 @@ export default function Header() {
     getUser();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser(session.user);
       } else {
@@ -79,29 +77,6 @@ export default function Header() {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        mobileMenuOpen &&
-        menuRef.current &&
-        buttonRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setMobileMenuOpen(false);
-      }
-    };
-
-    if (mobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [mobileMenuOpen]);
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -265,7 +240,6 @@ export default function Header() {
 
               {/* Hamburger Menu Button - Always visible in upper right */}
               <button
-                ref={buttonRef}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 hover:bg-botanical-green-700 rounded-md transition-colors"
                 aria-label="Toggle menu"
@@ -309,21 +283,25 @@ export default function Header() {
 
       {/* Hamburger Menu Dropdown - Always visible when open */}
       {mobileMenuOpen && (
-        <div ref={menuRef} className="absolute top-full right-4 mt-2 bg-botanical-green-800 border border-botanical-green-700 rounded-lg shadow-xl z-50 min-w-[250px]">
+        <div className="absolute top-full right-4 mt-2 bg-botanical-green-800 border border-botanical-green-700 rounded-lg shadow-xl z-50 min-w-[250px]">
           <nav className="flex flex-col py-2">
+            {/* Account Button - Always at top when logged in */}
+            {user && (
+              <Link
+                href="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2 hover:bg-botanical-green-700 transition-colors text-sm flex items-center gap-2 font-semibold bg-botanical-green-900"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Account
+              </Link>
+            )}
+            
             {/* Account Section */}
             {user ? (
               <>
-                <Link
-                  href="/account"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-2 hover:bg-botanical-green-700 transition-colors text-sm flex items-center gap-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  Account
-                </Link>
                 <Link
                   href="/settings"
                   onClick={() => setMobileMenuOpen(false)}
@@ -431,6 +409,20 @@ export default function Header() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </a>
+            {user && (
+              <button
+                onClick={async () => {
+                  setMobileMenuOpen(false);
+                  await handleSignOut();
+                }}
+                className="px-4 py-2 hover:bg-red-600 transition-colors text-sm flex items-center gap-2 text-left w-full text-red-200 hover:text-white"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+            )}
           </nav>
         </div>
       )}

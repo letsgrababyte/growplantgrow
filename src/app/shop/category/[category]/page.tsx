@@ -1,6 +1,10 @@
-import { notFound } from 'next/navigation';
-import { getAllProducts, filterProducts } from '@/lib/products';
+'use client';
+
+import { useState, useMemo, useEffect } from 'react';
+import { notFound, useParams } from 'next/navigation';
+import { getAllProducts, filterProducts, getFeaturedProducts, Product } from '@/lib/products';
 import EtsyProductGrid from '@/components/EtsyProductGrid';
+import CategoryFilterSidebar from '@/components/CategoryFilterSidebar';
 
 interface CategoryPageProps {
   params: {
@@ -48,9 +52,12 @@ export async function generateStaticParams() {
   }));
 }
 
-export default function CategoryPage({ params }: CategoryPageProps) {
+export default function CategoryPage() {
+  const params = useParams();
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  
   // Decode the category name from URL
-  const categoryName = decodeURIComponent(params.category);
+  const categoryName = decodeURIComponent(params.category as string);
   
   // Check if category is valid
   if (!validCategories.includes(categoryName)) {
@@ -59,12 +66,25 @@ export default function CategoryPage({ params }: CategoryPageProps) {
 
   // Get all products and filter by category (case-insensitive matching)
   const allProducts = getAllProducts();
-  const categoryProducts = filterProducts(allProducts, {
-    category: categoryName,
-  });
+  const categoryProducts = useMemo(() => {
+    return filterProducts(allProducts, {
+      category: categoryName,
+    });
+  }, [categoryName]);
+
+  // Get featured products from this category
+  const featuredCategoryProducts = useMemo(() => {
+    return categoryProducts.filter(p => p.isFeatured);
+  }, [categoryProducts]);
   
+  // Initialize filtered products when category changes
+  useEffect(() => {
+    setFilteredProducts(categoryProducts);
+  }, [categoryProducts]);
+
   // If no products found, still show the page but with empty state
   const hasProducts = categoryProducts.length > 0;
+  const displayProducts = filteredProducts.length > 0 ? filteredProducts : categoryProducts;
 
   return (
     <div>
@@ -85,9 +105,30 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         </div>
       </div>
 
-      {/* Products Grid - Same style as home page */}
+      {/* Products Grid with Filters - Same style as home page */}
       {hasProducts ? (
-        <EtsyProductGrid products={categoryProducts} title={`${categoryName} Products`} />
+        <div className="py-4 sm:py-8 px-2 sm:px-4 bg-white">
+          <div className="container mx-auto">
+            <div className="flex flex-col lg:flex-row">
+              {/* Filter Sidebar */}
+              <CategoryFilterSidebar
+                products={categoryProducts}
+                onFilterChange={setFilteredProducts}
+                categoryName={categoryName}
+              />
+              
+              {/* Products Grid */}
+              <div className="flex-1">
+                <EtsyProductGrid
+                  products={displayProducts}
+                  title={`All ${categoryName}`}
+                  featuredTitle={`Featured ${categoryName}`}
+                  featuredProducts={featuredCategoryProducts}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="py-16 px-4 sm:px-6">
           <div className="container mx-auto text-center">

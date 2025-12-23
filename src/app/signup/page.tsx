@@ -8,7 +8,6 @@ import SectionHeading from '@/components/SectionHeading';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,7 +18,19 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted - handleSignUp called');
     setError('');
+
+    // Validate inputs before setting loading state
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+
+    if (!password) {
+      setError('Please enter a password.');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -34,13 +45,20 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+      // Create a fresh Supabase client
+      const supabaseClient = createClient();
+
       // Normalize email (trim and lowercase)
       const normalizedEmail = email.trim().toLowerCase();
       
-      const { data, error } = await supabase.auth.signUp({
+      console.log('Attempting sign-up for:', normalizedEmail);
+      
+      const { data, error } = await supabaseClient.auth.signUp({
         email: normalizedEmail,
         password,
       });
+      
+      console.log('Sign-up response:', { hasData: !!data, hasUser: !!data?.user, hasError: !!error, error: error?.message });
 
       if (error) {
         setError(error.message);
@@ -63,7 +81,7 @@ export default function SignUpPage() {
           // Wait a moment for session to be fully established
           await new Promise(resolve => setTimeout(resolve, 500));
           // Verify session
-          const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+          const { data: { user: verifiedUser } } = await supabaseClient.auth.getUser();
           if (verifiedUser) {
             // Force full page reload to ensure all components pick up the session
             window.location.href = '/';
@@ -79,7 +97,7 @@ export default function SignUpPage() {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         try {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          const { data: signInData, error: signInError } = await supabaseClient.auth.signInWithPassword({
             email: normalizedEmail,
             password,
           });
@@ -97,7 +115,7 @@ export default function SignUpPage() {
             // Wait a moment for session to be fully established
             await new Promise(resolve => setTimeout(resolve, 500));
             // Verify session
-            const { data: { user: verifiedUser }, error: verifyError } = await supabase.auth.getUser();
+            const { data: { user: verifiedUser }, error: verifyError } = await supabaseClient.auth.getUser();
             if (verifiedUser && !verifyError) {
               console.log('Session verified, redirecting...');
               // Force full page reload to ensure all components pick up the session
@@ -125,7 +143,7 @@ export default function SignUpPage() {
               console.log('Email confirmation required, waiting and retrying...');
               await new Promise(resolve => setTimeout(resolve, 2000));
               
-              const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
+              const { data: retrySignIn, error: retryError } = await supabaseClient.auth.signInWithPassword({
                 email: normalizedEmail,
                 password,
               });
@@ -133,7 +151,7 @@ export default function SignUpPage() {
               if (!retryError && retrySignIn?.session) {
                 console.log('Retry sign-in successful after email confirmation');
                 await new Promise(resolve => setTimeout(resolve, 500));
-                const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+                const { data: { user: verifiedUser } } = await supabaseClient.auth.getUser();
                 if (verifiedUser) {
                   window.location.href = '/';
                   return;
@@ -168,7 +186,9 @@ export default function SignUpPage() {
         setLoading(false);
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during sign up');
+      console.error('Unexpected error during sign-up:', err);
+      const errorMessage = err?.message || err?.toString() || 'An unexpected error occurred during sign up. Please try again.';
+      setError(`Sign-up error: ${errorMessage}. Please check your internet connection and try again.`);
       setLoading(false);
     }
   };

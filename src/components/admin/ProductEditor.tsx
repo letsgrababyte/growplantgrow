@@ -9,11 +9,32 @@ interface ProductEditorProps {
   product?: AdminProduct;
 }
 
+interface ProductFormData {
+  title: string;
+  slug: string;
+  description: string;
+  short_description: string;
+  price: number;
+  category: string;
+  tags: string;
+  file_type: string;
+  page_count: number;
+  file_size_mb: number;
+  is_featured: boolean;
+  status: string;
+  lemon_squeezy_url: string;
+  seo_title: string;
+  seo_description: string;
+  meta_keywords: string;
+  thumbnail_url: string;
+  preview_images: string;
+}
+
 export default function ProductEditor({ product }: ProductEditorProps) {
   const router = useRouter();
   const isEditing = !!product;
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     title: product?.title || '',
     slug: product?.slug || '',
     description: product?.description || '',
@@ -288,13 +309,13 @@ export default function ProductEditor({ product }: ProductEditorProps) {
                       setUploadError('');
                       
                       try {
-                        const formData = new FormData();
-                        formData.append('file', file);
-                        formData.append('folder', 'thumbnails');
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', file);
+                        uploadFormData.append('folder', 'thumbnails');
                         
                         const response = await fetch('/api/admin/upload', {
                           method: 'POST',
-                          body: formData,
+                          body: uploadFormData,
                         });
                         
                         if (!response.ok) {
@@ -303,7 +324,7 @@ export default function ProductEditor({ product }: ProductEditorProps) {
                         }
                         
                         const { url } = await response.json();
-                        setFormData({ ...formData, thumbnail_url: url });
+                        setFormData((prev) => ({ ...prev, thumbnail_url: url }));
                       } catch (err: any) {
                         setUploadError(err.message || 'Failed to upload image');
                       } finally {

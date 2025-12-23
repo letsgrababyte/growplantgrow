@@ -1,13 +1,19 @@
-import { getAllProducts } from '@/lib/products';
+import { getAllProducts, getFeaturedProducts } from '@/lib/products';
 import EtsyProductGrid from '@/components/EtsyProductGrid';
 
 export default function HomePage() {
   const allProducts = getAllProducts();
+  const featuredProducts = getFeaturedProducts();
 
   return (
     <div>
       {/* Etsy-Style Product Grid */}
-      <EtsyProductGrid products={allProducts} title="All Products" />
+      <EtsyProductGrid 
+        products={allProducts} 
+        title="All Products"
+        featuredTitle="Featured Products"
+        featuredProducts={featuredProducts}
+      />
 
       {/* Features Section */}
       <section className="bg-botanical-green-50 py-16 px-4">
